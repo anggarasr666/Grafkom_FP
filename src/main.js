@@ -11,6 +11,7 @@ let playerMesh;
 
 let projectileMeshes = [];
 let projectileMesh;
+let projectileInterval;
 
 let targetMeshes = [];
 let targetMesh;
@@ -33,7 +34,7 @@ async function init() {
 		0.1,
 		1000
 	);
-	camera.position.z = 10;
+	camera.position.z = 20;
 	camera.position.y = 5;
   
   
@@ -60,10 +61,13 @@ async function init() {
 	addPlayer();
 	addPlane();
 	addProjectile();
+
 	addBackground();
 
 
 	addKeysListener();
+	await addProjectile();
+	startProjectileInterval();
 	animate();
 
 	spawntargets();
@@ -87,11 +91,32 @@ function animate(){
 	for ( const mixer of mixers ) mixer.update( dt );
 }
 
-async function addPlayer(){
-	const gltfLoader = new GLTFLoader().setPath( 'src/assets/' );
-	const playerGLTF = await gltfLoader.loadAsync( 'mm_project.glb' );
-	playerMesh = playerGLTF.scene.children[0];
-	scene.add(playerMesh);
+async function addPlayer() {
+    try {
+        const gltfLoader = new GLTFLoader().setPath('src/assets/');
+        const playerGLTF = await gltfLoader.loadAsync('mm_project.glb');
+        playerMesh = playerGLTF.scene.children[0];
+
+        const standardMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.5 });
+        playerMesh.material = standardMaterial;
+
+        playerMesh.castShadow = true;
+        playerMesh.receiveShadow = true;
+
+        playerMesh.position.set(0, 0, 0);
+        playerMesh.scale.set(1, 1, 1);
+
+        scene.add(playerMesh);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0);
+        directionalLight.position.set(1, 10, 6);
+        playerMesh.add(directionalLight);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        playerMesh.add(ambientLight);
+    } catch (error) {
+        console.error('Error adding player:', error);
+    }
 }
 
 
@@ -114,20 +139,20 @@ function addKeysListener(){
 	} , false);
 
 	window.addEventListener("keyup", (event) => {
-		// boiler plate code to prevent side effects
-		if (event.isComposing || event.keyCode === 229) {
-			return;
-		}
+		// // boiler plate code to prevent side effects
+		// if (event.isComposing || event.keyCode === 229) {
+		// 	return;
+		// }
 	
-		// space bar 
-		if (event.keyCode == 32) {
-			let projectileMeshClone = projectileMesh.clone();
-			projectileMeshClone.position.x = playerMesh.position.x;
-			projectileMeshClone.position.y = playerMesh.position.y + 2; // Sesuaikan nilai y di sini
-			projectileMeshClone.position.z = playerMesh.position.z;
-			scene.add(projectileMeshClone);
-			projectileMeshes.push(projectileMeshClone);
-		}
+		// // space bar 
+		// if (event.keyCode == 32) {
+		// 	let projectileMeshClone = projectileMesh.clone();
+		// 	projectileMeshClone.position.x = playerMesh.position.x;
+		// 	projectileMeshClone.position.y = playerMesh.position.y + 2; // Sesuaikan nilai y di sini
+		// 	projectileMeshClone.position.z = playerMesh.position.z;
+		// 	scene.add(projectileMeshClone);
+		// 	projectileMeshes.push(projectileMeshClone);
+		// }
 	});	
 }
 
@@ -199,6 +224,33 @@ function addProject(posX) {
     targetMeshes.push(model);
     scene.add(model);
 }
+
+function startProjectileInterval() {
+    let initialInterval = 500;
+
+    function launchProjectile() {
+        let projectileMeshClone = projectileMesh.clone();
+        projectileMeshClone.position.x = playerMesh.position.x;
+        projectileMeshClone.position.y = playerMesh.position.y + 2;
+        projectileMeshClone.position.z = playerMesh.position.z;
+        scene.add(projectileMeshClone);
+        projectileMeshes.push(projectileMeshClone);
+
+        initialInterval -= 10;
+
+        if (initialInterval < 100) {
+            initialInterval = 100;
+        }
+
+        setTimeout(launchProjectile, initialInterval);
+    }
+    launchProjectile();
+}
+
+function stopProjectileInterval() {
+    // No need to clear anything for setTimeout
+}
+
 
 async function loadtarget() {
     const gltfLoader = new GLTFLoader().setPath('src/assets/');
