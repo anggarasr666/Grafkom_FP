@@ -15,6 +15,11 @@ let projectileInterval;
 
 let targetMeshes = [];
 let targetMesh;
+let score = 0;
+let fail = 0;
+let initialInterval;
+let originalInterval = 500;
+let gameOver = false;
 let projectGLTF;
 
 let targetGLTF;
@@ -80,9 +85,8 @@ function animate(){
 	updateProjectiles();
 	updatetargets();
 
-
-	// collision detection between projectileMeshes and targetMeshes
 	checkCollisions();
+    updateScoreDisplay(); 
 
 	renderer.render(scene, camera);
 	requestAnimationFrame(animate);
@@ -226,7 +230,7 @@ function addProject(posX) {
 }
 
 function startProjectileInterval() {
-    let initialInterval = 500;
+    initialInterval = originalInterval;
 
     function launchProjectile() {
         let projectileMeshClone = projectileMesh.clone();
@@ -248,7 +252,7 @@ function startProjectileInterval() {
 }
 
 function stopProjectileInterval() {
-    // No need to clear anything for setTimeout
+    
 }
 
 
@@ -264,20 +268,23 @@ function spawntargets() {
     setInterval(() => {
         randomX = Math.floor(Math.random() * 20) - 10;
         addProject(randomX); 
-    }, 2000);
+    }, 1000);
 }
   
 function updatetargets(){
 	targetMeshes.forEach((target, index) => {
 		target.position.z += 0.15;
 		if(target.position.z > 0){
-		  scene.remove(target);
-		  targetMeshes.splice(index, 1);
+            fail += 1;
+            updateScoreDisplay();
+		    scene.remove(target);
+		    targetMeshes.splice(index, 1);
 		}
 	});
 }
   
 function checkCollisions(){
+    if(!gameOver){
 	targetMeshes.forEach((target, indexa) => {
 		projectileMeshes.forEach((projectile, indexb) => {
 			if( target.position.x >= projectile.position.x - 1 &&
@@ -288,10 +295,127 @@ function checkCollisions(){
 					targetMeshes.splice(indexa, 1);
 					scene.remove(projectile);
 					projectileMeshes.splice(indexb, 1);
-			}
-		});
-	});
+                    score += 1;
+                    updateScoreDisplay();
+			    }
+		    });
+	    });
+        if (fail >= 10) {
+            showGameOverScreen();
+        }
+    }
 }
+
+function updateScoreDisplay() {
+    const scoreElement = document.getElementById("score");
+    const failElement = document.getElementById("fail"); 
+    if (scoreElement) {
+        scoreElement.innerText = `Score: ${score}`;
+    }
+    if (failElement) {
+        failElement.innerText = `Fail: ${fail}`; 
+    }
+}
+
+
+function createRestartButton() {
+    const restartButton = document.createElement("button");
+    restartButton.innerText = "Restart";
+    restartButton.style.position = "absolute";
+    restartButton.style.top = "60%";
+    restartButton.style.left = "50%";
+    restartButton.style.transform = "translateX(-50%)";
+    restartButton.style.padding = "10px";
+    restartButton.style.fontSize = "20px";
+    restartButton.style.cursor = "pointer";
+    restartButton.style.backgroundColor = "green";
+    restartButton.style.color = "white";
+
+    restartButton.addEventListener("click", function () {
+        restartGame();
+    });
+
+    return restartButton;
+}
+
+function showGameOverScreen() {
+    gameOver = true;
+
+    // game over screen
+    const gameOverScreen = document.createElement("div");
+    gameOverScreen.id = "gameOverScreen";
+    gameOverScreen.style.position = "absolute";
+    gameOverScreen.style.top = "50%";
+    gameOverScreen.style.left = "50%";
+    gameOverScreen.style.transform = "translate(-50%, -50%)";
+    gameOverScreen.style.color = "white";
+    gameOverScreen.style.fontSize = "30px";
+    gameOverScreen.innerText = "Game Over!\nYour Score: " + score;
+
+    document.body.appendChild(gameOverScreen);
+    document.body.appendChild(createRestartButton());
+}
+
+function restartGame() {
+    //Reset game state
+    score = 0;
+    fail = 0;
+    gameOver = false;
+    initialInterval = originalInterval;
+
+    // Remove game over screen and restart button
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const restartButton = document.querySelector("button");
+
+    if (gameOverScreen) {
+        document.body.removeChild(gameOverScreen);
+    }
+
+    if (restartButton) {
+        document.body.removeChild(restartButton);
+    }
+
+    // Reset the scene and start the game again
+    resetScene();
+    startProjectileInterval();
+}
+
+function resetScene() {
+    // Remove remaining projectiles
+    projectileMeshes.forEach(projectile => {
+        scene.remove(projectile);
+    });
+    projectileMeshes = [];
+
+    // Remove remaining targets
+    targetMeshes.forEach(target => {
+        scene.remove(target);
+    });
+    targetMeshes = [];
+
+    // Reset player position
+    playerMesh.position.set(0, 0, 0);
+
+    // Reset score
+    score = 0;
+    updateScoreDisplay();
+
+    // Restart target spawning
+    startProjectileInterval();
+
+    // Hide game over screen and restart button
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const restartButton = document.querySelector("button");
+
+    if (gameOverScreen) {
+        document.body.removeChild(gameOverScreen);
+    }
+
+    if (restartButton) {
+        document.body.removeChild(restartButton);
+    }
+}
+
 
 async function addBackground(){
     const gltfLoader = new GLTFLoader().setPath( 'src/assets/' );
