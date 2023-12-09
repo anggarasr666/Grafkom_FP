@@ -39,8 +39,8 @@ async function init() {
 		0.1,
 		1000
 	);
-	camera.position.z = 20;
-	camera.position.y = 5;
+	camera.position.z = 30;
+	camera.position.y = 10;
   
   
 	// render
@@ -172,9 +172,10 @@ function movePlayer(){
 
 async function addProjectile(){
 	const gltfLoader = new GLTFLoader().setPath( 'src/assets/' );
-	const projectileGLTF = await gltfLoader.loadAsync( 'projectile.glb' );
+	const projectileGLTF = await gltfLoader.loadAsync( 'anak_panah_warna.glb' );
 	projectileMesh = projectileGLTF.scene;
 	projectileMesh.scale.set(2, 2, 2);
+    projectileMesh.rotation.set(0, Math.PI / 2, 0);
 }
 
 function updateProjectiles(){
@@ -210,6 +211,7 @@ function addProject(posX) {
     model.position.x = posX;
     model.position.y = 0;
     model.position.z = -30;
+    
 
     if (projectGLTF.animations && projectGLTF.animations.length > 0) {
         let animations = {};
