@@ -12,6 +12,7 @@ let playerMesh;
 let projectileMeshes = [];
 let projectileMesh;
 let projectileInterval;
+let particleSystem;
 
 let targetMeshes = [];
 let targetMesh;
@@ -39,8 +40,8 @@ async function init() {
 		0.1,
 		1000
 	);
-	camera.position.z = 30;
-	camera.position.y = 10;
+	camera.position.z = 20;
+	camera.position.y = 6;
   
   
 	// render
@@ -174,8 +175,28 @@ async function addProjectile(){
 	const gltfLoader = new GLTFLoader().setPath( 'src/assets/' );
 	const projectileGLTF = await gltfLoader.loadAsync( 'anak_panah_warna.glb' );
 	projectileMesh = projectileGLTF.scene;
-	projectileMesh.scale.set(2, 2, 2);
-    projectileMesh.rotation.set(0, Math.PI / 2, 0);
+
+    const projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    projectileMesh.traverse(child => {
+        if (child.isMesh) {
+            child.material = projectileMaterial;
+        }
+    });
+
+    addOutlineEffect(projectileMesh);
+    scaleAndRotateProjectile(projectileMesh);
+}
+
+function addOutlineEffect(object) {
+    const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+    const outlineMesh = new THREE.Mesh(object.geometry, outlineMaterial);
+    outlineMesh.scale.multiplyScalar(1.05);
+    object.add(outlineMesh);
+}
+
+function scaleAndRotateProjectile(object) {
+    object.scale.set(1.5, 1.5, 1.5);
+    object.rotation.set(0, Math.PI / 2, 0);
 }
 
 function updateProjectiles(){
@@ -231,6 +252,27 @@ function addProject(posX) {
     scene.add(model);
 }
 
+async function addBuffTarget(posX) {
+    try {
+        const gltfLoader = new GLTFLoader().setPath('src/assets/');
+        const buffGLTF = await gltfLoader.loadAsync('buff.glb');
+        let buffMesh = buffGLTF.scene.children[0];
+
+        const buffMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.7, metalness: 0.5 });
+        buffMesh.material = buffMaterial;
+
+        buffMesh.scale.set(0.5, 0.5, 0.5);
+        buffMesh.position.x = posX;
+        buffMesh.position.y = 0;
+        buffMesh.position.z = -30;
+
+        scene.add(buffMesh);
+        targetMeshes.push(buffMesh);
+    } catch (error) {
+        console.error('Error adding buff target:', error);
+    }
+}
+
 function startProjectileInterval() {
     initialInterval = originalInterval;
 
@@ -242,11 +284,11 @@ function startProjectileInterval() {
         scene.add(projectileMeshClone);
         projectileMeshes.push(projectileMeshClone);
 
-        initialInterval -= 10;
+        // initialInterval -= 10;
 
-        if (initialInterval < 100) {
-            initialInterval = 100;
-        }
+        // if (initialInterval < 100) {
+        //     initialInterval = 100;
+        // }
 
         setTimeout(launchProjectile, initialInterval);
     }
@@ -265,12 +307,15 @@ async function loadtarget() {
 }
 
 function spawntargets() {
-    let randomX = Math.floor(Math.random() * 20) - 10;
-    addProject(randomX); 
-    setInterval(() => {
-        randomX = Math.floor(Math.random() * 20) - 10;
+    setInterval (() => {
+        let randomX = Math.floor(Math.random() * 20) - 10;
         addProject(randomX); 
     }, 1000);
+
+    setInterval(() => {
+        let randomX = Math.floor(Math.random() * 20) - 10;
+        addBuffTarget(randomX);
+    }, 5000);
 }
   
 function updatetargets(){
@@ -284,29 +329,128 @@ function updatetargets(){
 		}
 	});
 }
+
+function createParticleSystem(position){
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+
+    for (let i = 0; i < 100; i++) {
+        const x = (Math.random() - 0.5) * 2;
+        const y = (Math.random() - 0.5) * 2;
+        const z = (Math.random() - 0.5) * 2;
+
+        vertices.push(x, y, z);
+    }
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    const material = new THREE.PointsMaterial({ color: 0xff0000, size: 0.1 });
+
+    particleSystem = new THREE.Points(geometry, material);
+    particleSystem.position.copy(position);
+    scene.add(particleSystem);
+
+    const particles = geometry.attributes.position.array;
+    const particleSpeed = 0.01;
+
+    const particleDirections = [];
+    for (let i = 0; i < particles.length; i += 3) {
+        const direction = new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2);
+        particleDirections.push(direction);
+    }
+
+    const animateParticles = () => {
+        for (let i = 0; i < particles.length; i += 3) {
+            particles[i] += particleDirections[i / 3].x * particleSpeed;
+            particles[i + 1] += particleDirections[i / 3].y * particleSpeed;
+            particles[i + 2] += particleDirections[i / 3].z * particleSpeed;
+        }
+
+        geometry.attributes.position.needsUpdate = true;
+
+        requestAnimationFrame(animateParticles);
+    };
+
+    animateParticles();
+
+    setTimeout(() => {
+        scene.remove(particleSystem);
+    }, 850);
+}
   
-function checkCollisions(){
-    if(!gameOver){
-	targetMeshes.forEach((target, indexa) => {
-		projectileMeshes.forEach((projectile, indexb) => {
-			if( target.position.x >= projectile.position.x - 1 &&
-				target.position.x <= projectile.position.x + 1 &&
-				target.position.z >= projectile.position.z - 1 &&
-				target.position.z <= projectile.position.z + 1){
-					scene.remove(target);
-					targetMeshes.splice(indexa, 1);
-					scene.remove(projectile);
-					projectileMeshes.splice(indexb, 1);
-                    score += 1;
-                    updateScoreDisplay();
-			    }
-		    });
-	    });
+function checkCollisionsForProject(target, projectile) {
+    const collisionThreshold = 1;
+    if (
+        target.position.x >= projectile.position.x - collisionThreshold &&
+        target.position.x <= projectile.position.x + collisionThreshold &&
+        target.position.z >= projectile.position.z - collisionThreshold &&
+        target.position.z <= projectile.position.z + collisionThreshold
+    ) {
+        createParticleSystem(target.position);
+        scene.remove(target);
+        const index = targetMeshes.indexOf(target);
+        if (index !== -1) {
+            targetMeshes.splice(index, 1);
+        }
+        scene.remove(projectile);
+        const projectileIndex = projectileMeshes.indexOf(projectile);
+        if (projectileIndex !== -1) {
+            projectileMeshes.splice(projectileIndex, 1);
+        }
+        score += 1;
+        updateScoreDisplay();
+    }
+}
+
+function checkCollisionsForBuff(target, projectile) {
+    const collisionThreshold = 2;
+    if (
+        target.position.x >= projectile.position.x - collisionThreshold &&
+        target.position.x <= projectile.position.x + collisionThreshold &&
+        target.position.z >= projectile.position.z - collisionThreshold &&
+        target.position.z <= projectile.position.z + collisionThreshold
+    ) {
+        createParticleSystem(target.position);
+        scene.remove(target);
+        const index = targetMeshes.indexOf(target);
+        if (index !== -1) {
+            targetMeshes.splice(index, 1);
+        }
+        scene.remove(projectile);
+        const projectileIndex = projectileMeshes.indexOf(projectile);
+        if (projectileIndex !== -1) {
+            projectileMeshes.splice(projectileIndex, 1);
+        }
+        score += 1;
+        updateScoreDisplay();
+
+
+        // initialInterval -= 500;
+
+        // if (initialInterval < 100) {
+        //     initialInterval = 100;
+        // }
+    }
+}
+
+
+function checkCollisions() {
+    if (!gameOver) {
+        targetMeshes.forEach((target) => {
+            projectileMeshes.forEach((projectile) => {
+                if (target.name === 'buffTarget') {
+                    checkCollisionsForBuff(target, projectile);
+                } else {
+                    checkCollisionsForProject(target, projectile);
+                }
+            });
+        });
+
         if (fail >= 10) {
             showGameOverScreen();
         }
     }
 }
+
 
 function updateScoreDisplay() {
     const scoreElement = document.getElementById("score");
