@@ -14,6 +14,10 @@ let projectileMesh;
 let projectileInterval;
 let particleSystem;
 
+let targetSpeed = 0.15;
+let maxTargetSpeed = 0.5;
+let timeElapsed = 0;
+
 let targetMeshes = [];
 let targetMesh;
 let score = 0;
@@ -308,6 +312,14 @@ async function loadtarget() {
 
 function spawntargets() {
     setInterval (() => {
+        timeElapsed += 1;
+        if (timeElapsed > 15) {
+            timeElapsed = 0;
+            targetSpeed += 0.05;
+            if (targetSpeed > 0.5) {
+                targetSpeed = maxTargetSpeed;
+            }
+        }
         let randomX = Math.floor(Math.random() * 20) - 10;
         addProject(randomX); 
     }, 1000);
@@ -320,7 +332,7 @@ function spawntargets() {
   
 function updatetargets(){
 	targetMeshes.forEach((target, index) => {
-		target.position.z += 0.15;
+		target.position.z += targetSpeed;
 		if(target.position.z > 0){
             fail += 1;
             updateScoreDisplay();
@@ -508,6 +520,7 @@ function restartGame() {
     fail = 0;
     gameOver = false;
     initialInterval = originalInterval;
+    targetSpeed = 0.15;
 
     // Remove game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
