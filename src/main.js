@@ -2,7 +2,7 @@ import * as THREE from "../threejs/build/three.module.js";
 import { GLTFLoader } from '../threejs/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from '../threejs/examples/jsm/utils/SkeletonUtils.js';
 
-let elThreejs = document.getElementById("threejs");
+const elThreejs = document.getElementById("threejs");
 let camera,scene,renderer;
 let axesHelper;
 
@@ -12,10 +12,11 @@ let playerMesh;
 let projectileMeshes = [];
 let projectileMesh;
 let projectileInterval;
-let particleSystem;
 
+const KCPTN_TARGET_ACC = 0.04;
+const KCPTN_TARGET_MAX = 0.5;
+const ACC_SETIAP_DTK = 15;
 let targetSpeed = 0.15;
-let maxTargetSpeed = 0.5;
 let timeElapsed = 0;
 
 let targetMeshes = [];
@@ -80,7 +81,8 @@ async function init() {
 	startProjectileInterval();
 	animate();
 
-	spawntargets();
+	spawntargets(20);
+    updateHighScore(null);
 
 }
 
@@ -252,7 +254,7 @@ function addProject(posX) {
         console.warn('Custom asset has no animations.');
     }
 
-    targetMeshes.push(model);
+    targetMeshes.push({name:"Normal Target", model: model});
     scene.add(model);
 }
 
@@ -271,7 +273,8 @@ async function addBuffTarget(posX) {
         buffMesh.position.z = -30;
 
         scene.add(buffMesh);
-        targetMeshes.push(buffMesh);
+        targetMeshes.push({name:"Buff Target", model: buffMesh});
+
     } catch (error) {
         console.error('Error adding buff target:', error);
     }
@@ -288,19 +291,9 @@ function startProjectileInterval() {
         scene.add(projectileMeshClone);
         projectileMeshes.push(projectileMeshClone);
 
-        // initialInterval -= 10;
-
-        // if (initialInterval < 100) {
-        //     initialInterval = 100;
-        // }
-
         setTimeout(launchProjectile, initialInterval);
     }
     launchProjectile();
-}
-
-function stopProjectileInterval() {
-    
 }
 
 
@@ -310,33 +303,31 @@ async function loadtarget() {
     await loadProject(); 
 }
 
-function spawntargets() {
+function spawntargets(buffPercentage) {
     setInterval (() => {
-        timeElapsed += 1;
-        if (timeElapsed > 15) {
-            timeElapsed = 0;
-            targetSpeed += 0.05;
-            if (targetSpeed > 0.5) {
-                targetSpeed = maxTargetSpeed;
-            }
-        }
+        timeElapsed++;
+        if (!(timeElapsed % ACC_SETIAP_DTK) && targetSpeed < KCPTN_TARGET_MAX)
+            targetSpeed += KCPTN_TARGET_ACC;
+    
         let randomX = Math.floor(Math.random() * 20) - 10;
-        addProject(randomX); 
+        if(Math.random() * 100 < buffPercentage)
+            addBuffTarget(randomX);
+        else addProject(randomX); 
     }, 1000);
 
-    setInterval(() => {
-        let randomX = Math.floor(Math.random() * 20) - 10;
-        addBuffTarget(randomX);
-    }, 5000);
+    // setInterval(() => {
+    //     let randomX = Math.floor(Math.random() * 20) - 10;
+    //     addBuffTarget(randomX);
+    // }, 5000);
 }
   
 function updatetargets(){
 	targetMeshes.forEach((target, index) => {
-		target.position.z += targetSpeed;
-		if(target.position.z > 0){
-            fail += 1;
+		target.model.position.z += targetSpeed;
+		if(target.model.position.z > 0 ){
+            if(target.name == "Normal Target") fail++;
             updateScoreDisplay();
-		    scene.remove(target);
+		    scene.remove(target.model);
 		    targetMeshes.splice(index, 1);
 		}
 	});
@@ -357,7 +348,7 @@ function createParticleSystem(position){
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     const material = new THREE.PointsMaterial({ color: 0xff0000, size: 0.1 });
 
-    particleSystem = new THREE.Points(geometry, material);
+    let particleSystem = new THREE.Points(geometry, material);
     particleSystem.position.copy(position);
     scene.add(particleSystem);
 
@@ -384,21 +375,25 @@ function createParticleSystem(position){
 
     animateParticles();
 
-    setTimeout(() => {
-        scene.remove(particleSystem);
-    }, 850);
+    setTimeout((ps) => {
+        scene.remove(ps);
+    }, 500, particleSystem);
 }
   
-function checkCollisionsForProject(target, projectile) {
-    const collisionThreshold = 1;
+function checkCollisionsObject(target, projectile, collisionThreshold) {
     if (
-        target.position.x >= projectile.position.x - collisionThreshold &&
-        target.position.x <= projectile.position.x + collisionThreshold &&
-        target.position.z >= projectile.position.z - collisionThreshold &&
-        target.position.z <= projectile.position.z + collisionThreshold
+        target.model.position.x >= projectile.position.x - collisionThreshold &&
+        target.model.position.x <= projectile.position.x + collisionThreshold &&
+        target.model.position.z >= projectile.position.z - collisionThreshold &&
+        target.model.position.z <= projectile.position.z + collisionThreshold
     ) {
-        createParticleSystem(target.position);
-        scene.remove(target);
+        if(target.name == "Buff Target") {
+            targetSpeed = targetSpeed - 0.1 > 0.05 ? targetSpeed - 0.1 : 0.05;
+            console.log(targetSpeed);
+        }
+
+        createParticleSystem(target.model.position);
+        scene.remove(target.model);
         const index = targetMeshes.indexOf(target);
         if (index !== -1) {
             targetMeshes.splice(index, 1);
@@ -408,57 +403,46 @@ function checkCollisionsForProject(target, projectile) {
         if (projectileIndex !== -1) {
             projectileMeshes.splice(projectileIndex, 1);
         }
-        score += 1;
+        score++;
         updateScoreDisplay();
     }
 }
 
-function checkCollisionsForBuff(target, projectile) {
-    const collisionThreshold = 2;
-    if (
-        target.position.x >= projectile.position.x - collisionThreshold &&
-        target.position.x <= projectile.position.x + collisionThreshold &&
-        target.position.z >= projectile.position.z - collisionThreshold &&
-        target.position.z <= projectile.position.z + collisionThreshold
-    ) {
-        createParticleSystem(target.position);
-        scene.remove(target);
-        const index = targetMeshes.indexOf(target);
-        if (index !== -1) {
-            targetMeshes.splice(index, 1);
-        }
-        scene.remove(projectile);
-        const projectileIndex = projectileMeshes.indexOf(projectile);
-        if (projectileIndex !== -1) {
-            projectileMeshes.splice(projectileIndex, 1);
-        }
-        score += 1;
-        updateScoreDisplay();
 
+function updateHighScore(scoreNow) {
+    if(scoreNow == null && !localStorage.highscore)
+        localStorage.setItem("highscore", 0); 
 
-        // initialInterval -= 500;
-
-        // if (initialInterval < 100) {
-        //     initialInterval = 100;
-        // }
+    if(getHighScore() < scoreNow){
+        localStorage.setItem("highscore", scoreNow);
+        return true;
     }
+
+    return false
 }
 
+function getHighScore() {
+    return Number(localStorage.highscore);
+}
+
+function gameIsOver() {
+    gameOver = true;
+    
+    var nhs = updateHighScore(score);
+
+    showGameOverScreen(nhs);
+}
 
 function checkCollisions() {
     if (!gameOver) {
         targetMeshes.forEach((target) => {
             projectileMeshes.forEach((projectile) => {
-                if (target.name === 'buffTarget') {
-                    checkCollisionsForBuff(target, projectile);
-                } else {
-                    checkCollisionsForProject(target, projectile);
-                }
+                    checkCollisionsObject(target, projectile, 1);
             });
         });
 
         if (fail >= 10) {
-            showGameOverScreen();
+            gameIsOver();
         }
     }
 }
@@ -496,9 +480,7 @@ function createRestartButton() {
     return restartButton;
 }
 
-function showGameOverScreen() {
-    gameOver = true;
-
+function showGameOverScreen(newHighScore) {
     // game over screen
     const gameOverScreen = document.createElement("div");
     gameOverScreen.id = "gameOverScreen";
@@ -508,7 +490,8 @@ function showGameOverScreen() {
     gameOverScreen.style.transform = "translate(-50%, -50%)";
     gameOverScreen.style.color = "white";
     gameOverScreen.style.fontSize = "30px";
-    gameOverScreen.innerText = "Game Over!\nYour Score: " + score;
+    gameOverScreen.style.textAlign = "center";
+    gameOverScreen.innerText = `Game Over!\nYour Score: ${score}\nHigh Score: ${getHighScore()} ${newHighScore? "(New Highscore!)":""}`;
 
     document.body.appendChild(gameOverScreen);
     document.body.appendChild(createRestartButton());
