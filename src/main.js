@@ -72,7 +72,7 @@ async function init() {
 	addPlayer();
 	addPlane();
 	addProjectile();
-
+    addline();
 	addBackground();
 
 
@@ -138,6 +138,7 @@ function addPlane() {
     let plane = new THREE.Mesh(geometry, material);
     plane.position.set(0, 0, -30); 
     scene.add(plane);
+    
 }
 
 
@@ -261,13 +262,13 @@ function addProject(posX) {
 async function addBuffTarget(posX) {
     try {
         const gltfLoader = new GLTFLoader().setPath('src/assets/');
-        const buffGLTF = await gltfLoader.loadAsync('buff.glb');
+        const buffGLTF = await gltfLoader.loadAsync('trafficcone.glb');
         let buffMesh = buffGLTF.scene.children[0];
 
-        const buffMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.7, metalness: 0.5 });
-        buffMesh.material = buffMaterial;
+        // const buffMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.7, metalness: 0.5 });
+        // buffMesh.material = buffMaterial;
 
-        buffMesh.scale.set(0.5, 0.5, 0.5);
+        // buffMesh.scale.set(0.7, 0.7, 0.7);
         buffMesh.position.x = posX;
         buffMesh.position.y = 0;
         buffMesh.position.z = -30;
@@ -451,17 +452,22 @@ function checkCollisions() {
 function updateScoreDisplay() {
     const scoreElement = document.getElementById("score");
     const failElement = document.getElementById("fail"); 
+    const hsElement = document.getElementById("highscore"); 
     if (scoreElement) {
         scoreElement.innerText = `Score: ${score}`;
     }
     if (failElement) {
         failElement.innerText = `Fail: ${fail}`; 
     }
+    if (hsElement) {
+        hsElement.innerText = `High Score: ${getHighScore()}`;
+    }
 }
 
 
 function createRestartButton() {
     const restartButton = document.createElement("button");
+    restartButton.id = "restartbutton";
     restartButton.innerText = "Restart";
     restartButton.style.position = "absolute";
     restartButton.style.top = "60%";
@@ -479,7 +485,25 @@ function createRestartButton() {
 
     return restartButton;
 }
+function howtoplaybutton () {
+    const howtoplaybutton = document.createElement("button");
+    howtoplaybutton.id = "howtoplaybutton";
+    howtoplaybutton.innerText = "How To Play";
+    howtoplaybutton.style.position = "absolute";
+    howtoplaybutton.style.top = "69%";
+    howtoplaybutton.style.left = "50%";
+    howtoplaybutton.style.transform = "translateX(-50%)";
+    howtoplaybutton.style.padding = "10px";
+    howtoplaybutton.style.fontSize = "20px";
+    howtoplaybutton.style.cursor = "pointer";
+    howtoplaybutton.style.backgroundColor = "green";
+    howtoplaybutton.style.color = "white";
 
+    howtoplaybutton.addEventListener("click", function () {
+        howtoplayscreen();
+    });
+    return howtoplaybutton;
+}
 function showGameOverScreen(newHighScore) {
     // game over screen
     const gameOverScreen = document.createElement("div");
@@ -495,8 +519,37 @@ function showGameOverScreen(newHighScore) {
 
     document.body.appendChild(gameOverScreen);
     document.body.appendChild(createRestartButton());
+    document.body.appendChild(howtoplaybutton());
 }
 
+function howtoplayscreen () {
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const restartButton = document.getElementById("restartbutton");
+    const howtoplaybtn = document.getElementById("howtoplaybutton");
+    if (gameOverScreen) {
+        document.body.removeChild(gameOverScreen);
+    }
+
+    if (restartButton) {
+        document.body.removeChild(restartButton);
+    }
+    if (howtoplaybtn) {
+        document.body.removeChild(howtoplaybtn);
+    }
+    const howtoplayscreen = document.createElement("div");
+    howtoplayscreen.id = "howtoplayscreen";
+    howtoplayscreen.style.position = "absolute";
+    howtoplayscreen.style.top = "40%";
+    howtoplayscreen.style.left = "50%";
+    howtoplayscreen.style.transform = "translate(-50%, -50%)";
+    howtoplayscreen.style.color = "white";
+    howtoplayscreen.style.fontSize = "30px";
+    howtoplayscreen.style.textAlign = "center";
+    howtoplayscreen.innerText = `How to Play!\n Use WASD to move player\n Shoot the targets to gain points!\n There are buffs which will increase your attack speed\n once you let 10 targets through you LOSE!`;
+
+    document.body.appendChild(howtoplayscreen);
+    document.body.appendChild(createRestartButton());
+}
 function restartGame() {
     //Reset game state
     score = 0;
@@ -507,8 +560,9 @@ function restartGame() {
 
     // Remove game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
-    const restartButton = document.querySelector("button");
-
+    const howtoplaybtn = document.getElementById("howtoplaybutton");
+    const restartButton = document.getElementById("restartbutton");
+    const howtoplayscrn = document.getElementById("howtoplayscreen");
     if (gameOverScreen) {
         document.body.removeChild(gameOverScreen);
     }
@@ -516,7 +570,12 @@ function restartGame() {
     if (restartButton) {
         document.body.removeChild(restartButton);
     }
-
+    if (howtoplaybtn) {
+        document.body.removeChild(howtoplaybtn);
+    }
+    if (howtoplayscrn) {
+        document.body.removeChild(howtoplayscrn);
+    }
     // Reset the scene and start the game again
     resetScene();
     startProjectileInterval();
@@ -547,14 +606,21 @@ function resetScene() {
 
     // Hide game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
-    const restartButton = document.querySelector("button");
-
+    const howtoplaybtn = document.getElementById("howtoplaybutton");
+    const restartButton = document.getElementById("restartbutton");
+    const howtoplayscrn = document.getElementById("howtoplayscreen");
     if (gameOverScreen) {
         document.body.removeChild(gameOverScreen);
     }
 
     if (restartButton) {
         document.body.removeChild(restartButton);
+    }
+    if (howtoplaybtn) {
+        document.body.removeChild(howtoplaybtn);
+    }
+    if (howtoplayscrn) {
+        document.body.removeChild(howtoplayscrn);
     }
 }
 
@@ -583,4 +649,15 @@ async function addBackground(){
     domeMesh.position.set(0, -40, 0);
     domeMesh.scale.set(0.1, 0.1, 0.1);
     scene.add(domeMesh);
+}
+function addline (){
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+
+// Define the line's geometry
+const geometry = new THREE.BufferGeometry();
+
+// Create the line and add it to the scene
+const line = new THREE.Line(geometry, material);
+line.position.set(0,0,-30);
+scene.add(line);
 }
