@@ -305,21 +305,24 @@ async function loadtarget() {
 }
 
 function spawntargets(buffPercentage) {
-    setInterval (() => {
+    const projectInterval = setInterval(() => {
         timeElapsed++;
         if (!(timeElapsed % ACC_SETIAP_DTK) && targetSpeed < KCPTN_TARGET_MAX)
             targetSpeed += KCPTN_TARGET_ACC;
-    
+
         let randomX = Math.floor(Math.random() * 20) - 10;
-        if(Math.random() * 100 < buffPercentage)
-            addBuffTarget(randomX);
-        else addProject(randomX); 
+        addProject(randomX);
     }, 1000);
 
-    // setInterval(() => {
-    //     let randomX = Math.floor(Math.random() * 20) - 10;
-    //     addBuffTarget(randomX);
-    // }, 5000);
+    const buffInterval = setInterval(() => {
+        let randomX = Math.floor(Math.random() * 20) - 10;
+        addBuffTarget(randomX);
+    }, 5000);
+
+    setTimeout(() => {
+        clearInterval(projectInterval);
+        clearInterval(buffInterval);
+    }, YOUR_DESIRED_TOTAL_INTERVAL);
 }
   
 function updatetargets(){
@@ -389,8 +392,14 @@ function checkCollisionsObject(target, projectile, collisionThreshold) {
         target.model.position.z <= projectile.position.z + collisionThreshold
     ) {
         if(target.name == "Buff Target") {
+            const firstSpeed = targetSpeed;
             targetSpeed = targetSpeed - 0.1 > 0.05 ? targetSpeed - 0.1 : 0.05;
             console.log(targetSpeed);
+
+            setTimeout(() => {
+                targetSpeed = firstSpeed;
+            },
+            3000);
         }
 
         createParticleSystem(target.model.position);
@@ -579,7 +588,6 @@ function restartGame() {
     playerMesh.position.set(0, 0, 0);
 
     updateScoreDisplay();
-    startProjectileInterval();
 
     // Remove game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
@@ -601,7 +609,6 @@ function restartGame() {
     }
     // Reset the scene and start the game again
     resetScene();
-    startProjectileInterval();
 }
 
 function resetScene() {
