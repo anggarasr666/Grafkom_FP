@@ -550,6 +550,21 @@ function howtoplayscreen () {
     document.body.appendChild(howtoplayscreen);
     document.body.appendChild(createRestartButton());
 }
+
+function clearScene() {
+    // Hapus proyektil
+    projectileMeshes.forEach(projectile => {
+        scene.remove(projectile);
+    });
+    projectileMeshes = [];
+
+    // Hapus target
+    targetMeshes.forEach(target => {
+        scene.remove(target.model);
+    });
+    targetMeshes = [];
+}
+
 function restartGame() {
     //Reset game state
     score = 0;
@@ -557,6 +572,14 @@ function restartGame() {
     gameOver = false;
     initialInterval = originalInterval;
     targetSpeed = 0.15;
+
+    clearScene()
+
+    // Reset player position
+    playerMesh.position.set(0, 0, 0);
+
+    updateScoreDisplay();
+    startProjectileInterval();
 
     // Remove game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
@@ -582,28 +605,6 @@ function restartGame() {
 }
 
 function resetScene() {
-    // Remove remaining projectiles
-    projectileMeshes.forEach(projectile => {
-        scene.remove(projectile);
-    });
-    projectileMeshes = [];
-
-    // Remove remaining targets
-    targetMeshes.forEach(target => {
-        scene.remove(target);
-    });
-    targetMeshes = [];
-
-    // Reset player position
-    playerMesh.position.set(0, 0, 0);
-
-    // Reset score
-    score = 0;
-    updateScoreDisplay();
-
-    // Restart target spawning
-    startProjectileInterval();
-
     // Hide game over screen and restart button
     const gameOverScreen = document.getElementById("gameOverScreen");
     const howtoplaybtn = document.getElementById("howtoplaybutton");
