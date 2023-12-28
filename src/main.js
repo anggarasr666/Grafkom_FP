@@ -586,7 +586,7 @@ function restartGame() {
     clearScene()
 
     // Reset player position
-    playerMesh.position.set(0, 0, 0);
+    playerMesh.position.set(0, 2, 0);
 
     updateScoreDisplay();
 
