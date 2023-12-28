@@ -21,6 +21,7 @@ let timeElapsed = 0;
 
 let targetMeshes = [];
 let targetMesh;
+let targetmatrix;
 let score = 0;
 let fail = 0;
 let initialInterval;
@@ -105,7 +106,7 @@ function animate(){
 async function addPlayer() {
     try {
         const gltfLoader = new GLTFLoader().setPath('src/assets/');
-        const playerGLTF = await gltfLoader.loadAsync('mm_project.glb');
+        const playerGLTF = await gltfLoader.loadAsync('archer.glb');
         playerMesh = playerGLTF.scene.children[0];
 
         const standardMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.5 });
@@ -114,8 +115,8 @@ async function addPlayer() {
         playerMesh.castShadow = true;
         playerMesh.receiveShadow = true;
 
-        playerMesh.position.set(0, 0, 0);
-        playerMesh.scale.set(1, 1, 1);
+        playerMesh.position.set(0, 2, 0);
+        playerMesh.scale.set(0.8, 0.8, 0.8);
 
         scene.add(playerMesh);
 
@@ -219,7 +220,7 @@ function updateProjectiles(){
 async function loadProject() {
     try {
         const gltfLoader = new GLTFLoader().setPath('src/assets/');
-        projectGLTF = await gltfLoader.loadAsync('mm_project.glb');
+        projectGLTF = await gltfLoader.loadAsync('dog.glb');
         console.log('Custom asset loaded successfully:', projectGLTF);
     } catch (error) {
         console.error('Error loading custom asset:', error);
@@ -233,13 +234,13 @@ function addProject(posX) {
     }
 
     let model = SkeletonUtils.clone(projectGLTF.scene);
-
-    model.scale.set(0.5, 0.5, 0.5);
+    
+    model.scale.set(1, 1, 1);
 
     model.position.x = posX;
-    model.position.y = 0;
+    model.position.y = 1;
     model.position.z = -30;
-    
+    model.rotation.set(0, Math.PI, 0);
 
     if (projectGLTF.animations && projectGLTF.animations.length > 0) {
         let animations = {};
@@ -248,7 +249,7 @@ function addProject(posX) {
         });
 
         const mixer = new THREE.AnimationMixer(model);
-        const actualAnimation = "YourAnimationName"; 
+        const actualAnimation = "ArmatureAction"; 
         mixer.clipAction(animations[actualAnimation]).play();
         mixers.push(mixer);
     } else {
@@ -287,7 +288,7 @@ function startProjectileInterval() {
     function launchProjectile() {
         let projectileMeshClone = projectileMesh.clone();
         projectileMeshClone.position.x = playerMesh.position.x;
-        projectileMeshClone.position.y = playerMesh.position.y + 2;
+        projectileMeshClone.position.y = playerMesh.position.y;
         projectileMeshClone.position.z = playerMesh.position.z;
         scene.add(projectileMeshClone);
         projectileMeshes.push(projectileMeshClone);
@@ -300,7 +301,7 @@ function startProjectileInterval() {
 
 async function loadtarget() {
     const gltfLoader = new GLTFLoader().setPath('src/assets/');
-    targetGLTF = await gltfLoader.loadAsync('mm_project.glb');
+    targetGLTF = await gltfLoader.loadAsync('target.glb');
     await loadProject(); 
 }
 
@@ -554,7 +555,7 @@ function howtoplayscreen () {
     howtoplayscreen.style.color = "white";
     howtoplayscreen.style.fontSize = "30px";
     howtoplayscreen.style.textAlign = "center";
-    howtoplayscreen.innerText = `How to Play!\n Use WASD to move player\n Shoot the targets to gain points!\n There are buffs which will increase your attack speed\n once you let 10 targets through you LOSE!`;
+    howtoplayscreen.innerText = `How to Play!\n Use WASD to move player\n You are a hunter, Shoot the animals to gain points!\n There are cones which will slow down the animals\n once you let 10 targets through you LOSE!`;
 
     document.body.appendChild(howtoplayscreen);
     document.body.appendChild(createRestartButton());
